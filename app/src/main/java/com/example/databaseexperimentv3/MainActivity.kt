@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -22,8 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
     // Declare a variable to hold the Firestore listener registration
     private var listenerRegistration: ListenerRegistration? = null
 
+    //Main Function that calls TodoApp
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -53,6 +57,7 @@ class MainActivity : ComponentActivity() {
         listenerRegistration?.remove()
         super.onDestroy()
     }
+
 }
 
 
@@ -70,6 +75,9 @@ fun TodoApp() {
 
     // State for storing the list of todo items
     var todoItems by remember { mutableStateOf(listOf<String>()) }
+
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.challenge_page)
 
     // CoroutineScope for launching Firestore queries
     val coroutineScope = rememberCoroutineScope()
@@ -103,61 +111,72 @@ fun TodoApp() {
 
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .background(Color.DarkGray)
     ) {
-        Text(
-            text = "To-Do List",
-            style = TextStyle(fontSize = 24.sp),
-            modifier = Modifier.padding(bottom = 16.dp)
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
         )
 
-        // Add a text input field for adding new to-do items
-        BasicTextField(
-            value = newItemText,
-            onValueChange = {
-                newItemText = it
-            },
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    if (newItemText.isNotBlank()) {
-                        // Add the new item to Firestore
-                        val newItem = hashMapOf("item" to newItemText)
-                        db.collection("todoItems")
-                            .add(newItem)
-                            .addOnSuccessListener {
-                                // Clear the text input field
-                                newItemText = ""
-                                keyboardController?.hide()
-                            }
-                            .addOnFailureListener { e ->
-                                Log.w("Firestore", "Error adding document", e)
-                            }
-                    }
-                }
-            ),
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.LightGray)
-                .padding(bottom = 16.dp),
-            textStyle = TextStyle(
-                color = Color.Red,
-                fontSize = 25.sp,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold
+                .fillMaxSize()
+
+        ) {
+            Text(
+                text = "",
+                style = TextStyle(fontSize = 24.sp),
+                modifier = Modifier.padding(bottom = 16.dp)
             )
-        )
 
-        // Box for displaying to-do items with removal button
-        TodoList(todoItems, db)
+            // Add a text input field for adding new to-do items
+            BasicTextField(
+                value = newItemText,
+                onValueChange = {
+                    newItemText = it
+                },
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (newItemText.isNotBlank()) {
+                            // Add the new item to Firestore
+                            val newItem = hashMapOf("item" to newItemText)
+                            db.collection("todoItems")
+                                .add(newItem)
+                                .addOnSuccessListener {
+                                    // Clear the text input field
+                                    newItemText = ""
+                                    keyboardController?.hide()
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.w("Firestore", "Error adding document", e)
+                                }
+                        }
+                    }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Cyan.copy(alpha = 0.3f))
+                    .padding(bottom = 16.dp),
+                textStyle = TextStyle(
+                    color = Color.Red,
+                    fontSize = 25.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold
+                )
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            // Box for displaying to-do items with removal button
+            TodoList(todoItems, db)
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 
