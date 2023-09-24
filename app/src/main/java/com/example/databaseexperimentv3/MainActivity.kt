@@ -22,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -34,32 +36,56 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.databaseexperimentv3.ui.theme.DatabaseExperimentV3Theme
 
 class MainActivity : ComponentActivity() {
-
-
-    // Declare a variable to hold the Firestore listener registration
-    private var listenerRegistration: ListenerRegistration? = null
-
-    //Main Function that calls TodoApp
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            TodoApp()
+            DatabaseExperimentV3Theme {
+                // Call the main composable function
+                MainContent()
+            }
         }
     }
-
-    override fun onDestroy() {
-        // Remove the Firestore listener when the activity is destroyed
-        listenerRegistration?.remove()
-        super.onDestroy()
-    }
-
 }
 
+
+@Composable
+fun MainContent() {
+    // Create a NavController
+    val navController = rememberNavController()
+
+    // Initialize Firebase Firestore
+    val db = FirebaseFirestore.getInstance()
+
+    // State for storing the list of todo items
+    val todoItems by remember { mutableStateOf(listOf<String>()) }
+
+    // Set up navigation
+    NavHost(
+        navController = navController,
+        startDestination = "mainPage"
+    ) {
+        composable("mainPage") {
+            MainPage(navController)
+        }
+        composable("loginPage") {
+            LoginPage()
+        }
+        composable("TodoList"){
+            TodoList(todoItems, db)
+        }
+        // Add more destinations as needed
+    }
+}
 
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalComposeUiApi::class)
@@ -180,7 +206,255 @@ fun TodoApp() {
     }
 }
 
+@Composable
+fun MainPage(navController: NavController) {
 
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.starting_page)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(1.12f)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Text(
+                text = "",
+                style = TextStyle(fontSize = 24.sp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
+        // Add the first button with an offset
+        Box(
+            modifier = Modifier
+                .absoluteOffset(y = (-200).dp, x = (-9).dp)
+                .align(Alignment.BottomCenter)
+        ) {
+            Button(
+                onClick = {
+                    navController.navigate("loginPage")
+                },
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .width(240.dp)
+                    .alpha(0f)
+            ) {
+                Text("")
+            }
+        }
+
+        // Add the second button with a different offset
+        Box(
+            modifier = Modifier
+                .absoluteOffset(y = (-140).dp, x = (-9).dp)
+                .align(Alignment.BottomCenter)
+        ) {
+            Button(
+                onClick = {
+                    // Define the action to perform when the button is clicked
+                },
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .width(240.dp)
+                    .alpha(0f)
+            ) {
+                Text("")
+            }
+        }
+    }
+}
+@Composable
+fun LoginPage(){
+
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.loginpage)
+
+    // State for the text input in the TextBox
+    var playerBoxText by remember { mutableStateOf("") }
+    var keyBoxText by remember { mutableStateOf("") }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(1.12f)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Text(
+                text = "",
+                style = TextStyle(fontSize = 24.sp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+        // Add a text input field (TextBox)
+        BasicTextField(
+            value = playerBoxText,
+            onValueChange = {
+                playerBoxText = it
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    // You can perform an action when the user presses Done here
+                }
+            ),
+            modifier = Modifier
+                .offset(y = (-83f).dp, x = 8.dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal
+            )
+        )
+
+        BasicTextField(
+            value = keyBoxText,
+            onValueChange = {
+                keyBoxText = it
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    // You can perform an action when the user presses Done here
+                }
+            ),
+            modifier = Modifier
+                .offset(y = (-3f).dp, x = 8.dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal
+            )
+        )
+    }
+
+}
+@Composable
+fun SignupPage(){
+
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.loginpage)
+
+    // State for the text input in the TextBox
+    var playerBoxText by remember { mutableStateOf("") }
+    var keyBoxText by remember { mutableStateOf("") }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(1.12f)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Text(
+                text = "",
+                style = TextStyle(fontSize = 24.sp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+        // Add a text input field (TextBox)
+        BasicTextField(
+            value = playerBoxText,
+            onValueChange = {
+                playerBoxText = it
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    // You can perform an action when the user presses Done here
+                }
+            ),
+            modifier = Modifier
+                .offset(y = (-83f).dp, x = 8.dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal
+            )
+        )
+
+        BasicTextField(
+            value = keyBoxText,
+            onValueChange = {
+                keyBoxText = it
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    // You can perform an action when the user presses Done here
+                }
+            ),
+            modifier = Modifier
+                .offset(y = (-3f).dp, x = 8.dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal
+            )
+        )
+    }
+
+}
 
 @Composable
 // Create a LazyColumn to display the list of to-do items
