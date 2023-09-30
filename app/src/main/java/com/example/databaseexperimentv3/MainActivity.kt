@@ -87,9 +87,9 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "mainPage"
+        startDestination = "ProfilePage"
     ) {
-        composable("mainPage") {
+        composable("MainPage") {
             MainPage(navController)
         }
         composable("LoginPage") {
@@ -183,6 +183,7 @@ fun MainPage(navController: NavController) {
 @Composable
 fun LoginPage(navController: NavController){
 
+
     // Initialize Firebase Auth
     var auth: FirebaseAuth = Firebase.auth
 
@@ -190,8 +191,40 @@ fun LoginPage(navController: NavController){
     val backgroundImage = painterResource(id = R.drawable.loginpage)
 
     // State for the text input in the TextBox
-    var playerBoxText by remember { mutableStateOf("") }
-    var keyBoxText by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    // State for displaying success or error messages
+    var showMessage by remember { mutableStateOf(false) }
+    var messageText by remember { mutableStateOf("") }
+
+    // Function to handle user login
+    fun signIn() {
+        if (email.isNotEmpty() && password.isNotEmpty()) {
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener {
+                    // User login successful
+                    messageText = "Login Successful"
+                    showMessage = true
+
+                    // Navigate user to profile
+                    navController.navigate("profilePage")
+
+                    // Clear the input fields after login
+                    email = ""
+                    password = ""
+                }
+                .addOnFailureListener { e ->
+                    // User login failed
+                    messageText = "Login Failed: ${e.message}"
+                    showMessage = true
+                }
+        } else {
+            // Handle the case when either email or password is empty
+            messageText = "Email and password cannot be empty"
+            showMessage = true
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -218,9 +251,9 @@ fun LoginPage(navController: NavController){
         }
         // Add a text input field (TextBox)
         BasicTextField(
-            value = playerBoxText,
+            value = email,
             onValueChange = {
-                playerBoxText = it
+                email = it
             },
             keyboardOptions = KeyboardOptions.Default.copy(
                 imeAction = ImeAction.Done
@@ -245,9 +278,9 @@ fun LoginPage(navController: NavController){
         )
 
         BasicTextField(
-            value = keyBoxText,
+            value = password,
             onValueChange = {
-                keyBoxText = it
+                password = it
             },
             keyboardOptions = KeyboardOptions.Default.copy(
                 imeAction = ImeAction.Done
@@ -277,8 +310,7 @@ fun LoginPage(navController: NavController){
         ) {
             Button(
                 onClick = {
-
-                    navController.navigate("profilePage")
+                    signIn()
                 },
                 modifier = Modifier
                     .padding(bottom = 16.dp)
@@ -291,6 +323,46 @@ fun LoginPage(navController: NavController){
 
         }
     }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+
+        Text(
+            text = if (showMessage) messageText else "",
+            style = TextStyle(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                shadow = Shadow(
+                    color = Color.Red, // Shadow color
+                    offset = Offset(4F, 4F), // Shadow offset
+                    blurRadius = 8F // Shadow blur radius
+                )
+            ),
+
+            modifier = Modifier
+                .padding(bottom = 16.dp)
+                .align(Alignment.Center)
+                .offset(y = ((170).dp))
+                .alpha(if (showMessage) 1f else 0f) // Show/hide the message
+        )
+    }
+
+    // Create a coroutine scope
+    val coroutineScope = rememberCoroutineScope()
+
+    // Use LaunchedEffect to automatically reset showMessage after a delay
+    LaunchedEffect(showMessage) {
+        if (showMessage) {
+            coroutineScope.launch {
+                delay(3000L) // Delay for 3 seconds (3000 milliseconds)
+                showMessage = false // Reset showMessage after the delay
+            }
+        }
+    }
+
 
 }
 
@@ -547,6 +619,20 @@ fun ProfilePage(navController: NavController){
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .width(270.dp)
+                    .height(50.dp)
+                    .alpha(0f)
+            ) {
+                Text("")
+            }
+            Button(
+                onClick = {
+                    navController.navigate("MainPage")
+                    Firebase.auth.signOut()
+                },
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .offset(x = 240.dp, y = (-655).dp)
+                    .width(50.dp)
                     .height(50.dp)
                     .alpha(0f)
             ) {
