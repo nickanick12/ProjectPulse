@@ -87,7 +87,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "ProfilePage"
+        startDestination = "TodoList"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -96,7 +96,7 @@ fun NavigationController() {
             LoginPage(navController)
         }
         composable("TodoList"){
-            TodoApp()
+            TodoApp(navController)
         }
         composable("SignupPage"){
             SignupPage(navController)
@@ -647,7 +647,7 @@ fun ProfilePage(navController: NavController){
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalComposeUiApi::class)
 @Composable
-fun TodoApp() {
+fun TodoApp(navController: NavController) {
     var newItemText by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -758,6 +758,16 @@ fun TodoApp() {
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    Button(
+        onClick = { navController.navigate("ProfilePage") },
+        modifier = Modifier
+            .size(width = 165.dp, height = 50.dp)
+            .offset(y = (715).dp, x = (110).dp)
+            .alpha(0f)
+    ) {
+
     }
 }
 
