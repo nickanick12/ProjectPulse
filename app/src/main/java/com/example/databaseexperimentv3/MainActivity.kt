@@ -2,6 +2,7 @@ package com.example.databaseexperimentv3
 
 
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -47,21 +48,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.databaseexperimentv3.ui.theme.DatabaseExperimentV3Theme
-import com.example.databaseexperimentv3.ui.theme.Purple40
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
-
+import android.widget.VideoView
+import androidx.compose.ui.viewinterop.AndroidView
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Initialize Firebase Auth
-        var auth: FirebaseAuth = Firebase.auth
-        // Check if user is signed in (non-null)
-        val currentUser = auth.currentUser
 
         setContent {
             DatabaseExperimentV3Theme {
@@ -78,16 +74,10 @@ fun NavigationController() {
     // Create a NavController
     val navController = rememberNavController()
 
-    // Initialize Firebase Firestore *For Future Use*
-    val db = FirebaseFirestore.getInstance()
-
-    // State for storing the list of to do items *For Future Use*
-    val todoItems by remember { mutableStateOf(listOf<String>()) }
-
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "TodoList"
+        startDestination = "MainPage"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -104,6 +94,15 @@ fun NavigationController() {
         composable("ProfilePage"){
             ProfilePage(navController)
         }
+        composable("UserDetailsPage/{username}/{password}") { backStackEntry ->
+            // Extract the username and password from backStackEntry
+            val username = backStackEntry.arguments?.getString("username")
+            val password = backStackEntry.arguments?.getString("password")
+
+            // Call UserDetailsPage composable with username and password
+            UserDetailsPage(navController, username, password)
+        }
+
         // Add more destinations as needed
     }
 }
@@ -115,10 +114,13 @@ fun MainPage(navController: NavController) {
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.starting_page)
 
+    // Define the resource ID for your MP4 video
+    val videoResourceId = R.raw.pulsing_heart
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
+        // Background Image
         Image(
             painter = backgroundImage,
             contentDescription = null,
@@ -128,9 +130,32 @@ fun MainPage(navController: NavController) {
                 .scale(1.12f)
         )
 
-        Column(
+        // VideoView for the Pulsing Heart
+        AndroidView(
+            factory = { context ->
+                val videoView = VideoView(context)
+
+                // Set the video URI from the resource
+                val videoUri = Uri.parse("android.resource://${context.packageName}/$videoResourceId")
+                videoView.setVideoURI(videoUri)
+
+                // Start playing when the view is ready
+                videoView.start()
+
+                // Set an OnCompletionListener to restart the video when it completes
+                videoView.setOnCompletionListener { mediaPlayer ->
+                    mediaPlayer.start()
+                }
+
+                videoView
+            },
             modifier = Modifier
-                .fillMaxSize()
+                .align(Alignment.Center)
+                .absoluteOffset(y = (-120).dp)
+        )
+
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
             Text(
                 text = "",
@@ -155,7 +180,6 @@ fun MainPage(navController: NavController) {
             ) {
                 Text("")
             }
-
         }
 
         // Add the second button with a different offset
@@ -185,7 +209,7 @@ fun LoginPage(navController: NavController){
 
 
     // Initialize Firebase Auth
-    var auth: FirebaseAuth = Firebase.auth
+    val auth: FirebaseAuth = Firebase.auth
 
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.loginpage)
@@ -399,25 +423,10 @@ fun SignupPage(navController: NavController){
             if (username.matches(emailPattern)) {
                 // Check if the password meets the criteria
                 if (password.matches(passwordPattern)) {
-                    // If both email and password are valid, proceed with user registration
-                    FirebaseAuth.getInstance().createUserWithEmailAndPassword(username, password)
-                        .addOnSuccessListener {
-                            // User registration successful
-                            messageText = "Registration Successful"
-                            showMessage = true
 
-                            // Transport User to Login
-                            navController.navigate("LoginPage")
+                    // Pass the username and password to UserDetailsPage
+                    navController.navigate("UserDetailsPage/$username/$password")
 
-                            // Clear the input fields after registration
-                            username = ""
-                            password = ""
-                        }
-                        .addOnFailureListener { e ->
-                            // User registration failed
-                            messageText = "Registration Failed: ${e.message}"
-                            showMessage = true
-                        }
                 } else {
                     // Password does not meet the criteria
                     messageText = "Password must be at least 8 characters long with at least one uppercase letter and one symbol."
@@ -562,6 +571,232 @@ fun SignupPage(navController: NavController){
 
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun UserDetailsPage(navController: NavController, username: String?, password: String?) {
+
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.user_details_page)
+
+    // Access the keyboard controller locally
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // State for the text input and storing user data
+    var playerHandle by remember { mutableStateOf("") }
+    var birthdate by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+
+    // State for displaying success or error messages
+    var showMessage by remember { mutableStateOf(false) }
+    var messageText by remember { mutableStateOf("") }
+
+    // Function to handle user registration and data storage
+
+    fun signUp(navController: NavController) {
+        // Check if Player Handle is not empty and doesn't exceed 12 characters
+        if (playerHandle.isNotEmpty() && playerHandle.length <= 12) {
+            // Check if Birthdate is in a valid format (e.g., yyyy-mm-dd)
+            val birthdatePattern = Regex("^\\d{4}-\\d{2}-\\d{2}$")
+            if (birthdate.isNotEmpty() && birthdate.matches(birthdatePattern)) {
+                // Check if Gender is one of the allowed values (e.g., Male, Female, Other)
+                val allowedGenders = setOf("Male", "Female", "Other")
+                if (gender.isNotEmpty() && gender in allowedGenders) {
+                    // Check if Location is not empty
+                    if (location.isNotEmpty()) {
+                        // If all inputs are valid, proceed with user registration
+                        if (username != null) {
+                            if (password != null) {
+                                FirebaseAuth.getInstance().createUserWithEmailAndPassword(username, password)
+                                    .addOnSuccessListener { authResult ->
+                                        // User registration successful
+                                        messageText = "Registration Successful"
+                                        showMessage = true
+
+                                        // Store additional user data in Firestore
+                                        val userId = authResult.user?.uid
+                                        val db = FirebaseFirestore.getInstance()
+                                        userId?.let {
+                                            val user = hashMapOf(
+                                                "playerHandle" to playerHandle,
+                                                "birthdate" to birthdate,
+                                                "gender" to gender,
+                                                "location" to location
+                                            )
+                                            db.collection("users").document(it)
+                                                .set(user)
+                                                .addOnSuccessListener {
+                                                    // Data stored successfully
+                                                    // Clear the input fields after registration
+                                                    playerHandle = ""
+                                                    birthdate = ""
+                                                    gender = ""
+                                                    location = ""
+
+                                                    // Navigate to the next screen
+                                                    navController.navigate("NextPage")
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    // Handle Firestore data storage error
+                                                    messageText = "Firestore Data Storage Failed: ${e.message}"
+                                                    showMessage = true
+                                                }
+                                        }
+                                    }
+                                    .addOnFailureListener { e ->
+                                        // User registration failed
+                                        messageText = "Registration Failed: ${e.message}"
+                                        showMessage = true
+                                    }
+                            }
+                        }
+                    } else {
+                        messageText = "Location cannot be empty."
+                        showMessage = true
+                    }
+                } else {
+                    messageText = "Invalid gender. Please select from Male, Female, or Other."
+                    showMessage = true
+                }
+            } else {
+                messageText = "Invalid birthdate format. Please use yyyy-mm-dd."
+                showMessage = true
+            }
+        } else {
+            messageText = "Player Handle should not be empty and must not exceed 12 characters."
+            showMessage = true
+        }
+    }
+
+    // Create a coroutine scope
+    val coroutineScope = rememberCoroutineScope()
+
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(1.12f)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Text(
+                text = "",
+                style = TextStyle(fontSize = 24.sp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            // ... (previous code)
+
+            Text(
+                text = if (showMessage) messageText else "",
+                style = TextStyle(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    shadow = Shadow(
+                        color = Color.Red, // Shadow color
+                        offset = Offset(4F, 4F), // Shadow offset
+                        blurRadius = 8F // Shadow blur radius
+                    )
+                ),
+
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .align(Alignment.Center)
+                    .offset(y = ((150).dp))
+                    .alpha(if (showMessage) 1f else 0f) // Show/hide the message
+            )
+        }
+
+
+        HintTextField(
+            value = playerHandle,
+            onValueChange = {
+                playerHandle = it
+            },
+            hint = "PulseMaster",
+            modifier = Modifier
+                .offset(y = (-83f).dp, x = (-5).dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal
+            )
+        )
+
+        HintTextField(
+            value = birthdate,
+            onValueChange = {
+                birthdate = it
+            },
+            hint = "2023-05-12$",
+            modifier = Modifier
+                .offset(y = (-3f).dp, x = (-5).dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal,
+            )
+        )
+
+        Box(
+            modifier = Modifier
+                .absoluteOffset(y = (-278).dp, x = (0).dp)
+                .align(Alignment.BottomCenter)
+        ) {
+            Button(
+                onClick = {
+                    keyboardController?.hide() // Hide the keyboard
+                    signUp(navController)
+                },
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .width(270.dp)
+                    .height(50.dp)
+                    .alpha(0f)
+            ) {
+                Text("")
+            }
+
+        }
+
+    }
+    // Use LaunchedEffect to automatically reset showMessage after a delay
+    LaunchedEffect(showMessage) {
+        if (showMessage) {
+            coroutineScope.launch {
+                delay(3000L) // Delay for 3 seconds (3000 milliseconds)
+                showMessage = false // Reset showMessage after the delay
+            }
+        }
+    }
+
+}
+
+
+
 @Composable
 fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, modifier: Modifier = Modifier, textStyle: TextStyle = TextStyle.Default) {
     var isHintDisplayed by remember { mutableStateOf(value.isEmpty()) }
@@ -584,6 +819,7 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
         )
     }
 }
+
 
 @Composable
 fun ProfilePage(navController: NavController){
@@ -805,10 +1041,8 @@ fun TodoItem(item: String, db: FirebaseFirestore) {
             .border(1.dp, Color.Magenta)
             .combinedClickable(
                 onClick = {
-                    // Handle regular click here
                 },
                 onLongClick = {
-                    // Handle long-press here
                     deleteDataFromFirestore(item, db, context)
                 }
             )
@@ -861,7 +1095,7 @@ private fun deleteDataFromFirestore(item: String, db: FirebaseFirestore, context
                     .document(document.id)
                     .delete()
                     .addOnSuccessListener {
-                        // Display a toast message when the todo item is deleted.
+                        // Display a toast message when the to do item is deleted.
                         Toast.makeText(context, "Deleted Successfully", Toast.LENGTH_SHORT)
                             .show()
                     }
