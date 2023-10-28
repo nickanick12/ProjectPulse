@@ -59,6 +59,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.viewinterop.AndroidView
+import com.google.firebase.firestore.ktx.toObject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,9 +74,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+data class UserData(
+    val username: String = "",
+    val location: String = "",
+) {
+    constructor() : this("", "")
+}
+
 
 @Composable
 fun NavigationController() {
+    // Initialize Firebase Auth
+    val auth = FirebaseAuth.getInstance()
+
+    // Get the current user
+    val currentUser = auth.currentUser
+
     // Create a NavController
     val navController = rememberNavController()
 
@@ -97,7 +111,14 @@ fun NavigationController() {
             SignupPage(navController)
         }
         composable("ProfilePage"){
-            ProfilePage(navController)
+            // Check if a user is currently signed in
+            if (currentUser != null) {
+                val userId = currentUser.uid // This is the UID of the current user
+                ProfilePage(navController, userId)
+            } else {
+                // No user is signed in
+                MainPage(navController)
+            }
         }
         composable("UserDetailsPage/{username}/{password}") { backStackEntry ->
             // Extract the username and password from backStackEntry
@@ -907,12 +928,27 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
 
 
 @Composable
-fun ProfilePage(navController: NavController){
+fun ProfilePage(navController: NavController, userId: String) {
+    val db = FirebaseFirestore.getInstance()
 
+    // Create a state to hold the user data
+    var userData by remember { mutableStateOf<UserData?>(null) }
+
+    // Fetch user data from Firestore
+    LaunchedEffect(userId) {
+        val userDocument = db.collection("users").document(userId)
+        userDocument.get()
+            .addOnSuccessListener { documentSnapshot ->
+                val user = documentSnapshot.toObject<UserData>()
+                userData = user
+            }
+            .addOnFailureListener {
+                // Handle the error here
+            }
+    }
 
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.profile)
-
 
     Box(
         modifier = Modifier
@@ -958,6 +994,18 @@ fun ProfilePage(navController: NavController){
                     .alpha(0f)
             ) {
                 Text("")
+            }
+
+            // Display user data if available
+            userData?.let { user ->
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxSize()
+                ) {
+                    Text(text = "Username: ${user.username}")
+                    Text(text = "Location: ${user.location}")
+                }
             }
 
         }
