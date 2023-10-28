@@ -2,9 +2,11 @@ package com.example.databaseexperimentv3
 
 
 import android.content.Context
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,6 +55,9 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import android.widget.VideoView
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.viewinterop.AndroidView
 
 class MainActivity : ComponentActivity() {
@@ -77,7 +82,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "MainPage"
+        startDestination = "SplashScreen"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -102,8 +107,45 @@ fun NavigationController() {
             // Call UserDetailsPage composable with username and password
             UserDetailsPage(navController, username, password)
         }
+        composable("SplashScreen"){
+            SplashScreen(navController)
+        }
 
         // Add more destinations as needed
+    }
+}
+
+@Composable
+fun SplashScreen(navController: NavController) {
+    val context = LocalContext.current
+
+    // Define the resource ID for your MP4 video
+    val videoResourceId = R.raw.compsplash
+
+    Box(
+        modifier = Modifier
+
+    ) {
+        AndroidView(
+            factory = { ctx ->
+                val videoView = VideoView(ctx)
+
+                val videoUri = Uri.parse("android.resource://${ctx.packageName}/$videoResourceId")
+                videoView.setVideoURI(videoUri)
+
+                videoView.setOnPreparedListener { videoView.start() }
+
+                videoView.setOnCompletionListener {
+                    // Video has completed, navigate to the destination activity
+                    navController.navigate("MainPage")
+                }
+
+                videoView
+            },
+            modifier = Modifier
+                .align(Alignment.Center)
+                .height(1000.dp)
+        )
     }
 }
 
@@ -152,6 +194,7 @@ fun MainPage(navController: NavController) {
             modifier = Modifier
                 .align(Alignment.Center)
                 .absoluteOffset(y = (-120).dp)
+                .size(200.dp)
         )
 
         Column(
@@ -417,15 +460,18 @@ fun SignupPage(navController: NavController){
         val emailPattern = Regex("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}")
         val passwordPattern = Regex("^(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")
 
-        // Check if the email and password are not empty
-        if (username.isNotEmpty() && password.isNotEmpty()) {
+        // Trim the input username to remove leading and trailing spaces
+        val trimmedUsername = username.trim()
+
+        // Check if the trimmed username and password are not empty
+        if (trimmedUsername.isNotEmpty() && password.isNotEmpty()) {
             // Check if the provided email is a valid email
-            if (username.matches(emailPattern)) {
+            if (trimmedUsername.matches(emailPattern)) {
                 // Check if the password meets the criteria
                 if (password.matches(passwordPattern)) {
 
-                    // Pass the username and password to UserDetailsPage
-                    navController.navigate("UserDetailsPage/$username/$password")
+                    // Pass the trimmed username and password to UserDetailsPage
+                    navController.navigate("UserDetailsPage/$trimmedUsername/$password")
 
                 } else {
                     // Password does not meet the criteria
@@ -443,6 +489,7 @@ fun SignupPage(navController: NavController){
             showMessage = true
         }
     }
+
 
     // Create a coroutine scope
     val coroutineScope = rememberCoroutineScope()
@@ -749,7 +796,45 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
             },
             hint = "2023-05-12$",
             modifier = Modifier
-                .offset(y = (-3f).dp, x = (-5).dp)
+                .offset(y = (-3f).dp, x = (0).dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal,
+            )
+        )
+
+        HintTextField(
+            value = gender,
+            onValueChange = {
+                gender = it
+            },
+            hint = "Female",
+            modifier = Modifier
+                .offset(y = 83.dp, x = (0).dp)
+                .align(Alignment.Center)
+                .width(280.dp)
+                .height(55.dp)
+                .background(Color.Transparent)
+                .padding(16.dp),
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal,
+            )
+        )
+
+        HintTextField(
+            value = location,
+            onValueChange = {
+                location = it
+            },
+            hint = "United States",
+            modifier = Modifier
+                .offset(y = 170.dp, x = (0).dp)
                 .align(Alignment.Center)
                 .width(280.dp)
                 .height(55.dp)
@@ -763,7 +848,7 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
 
         Box(
             modifier = Modifier
-                .absoluteOffset(y = (-278).dp, x = (0).dp)
+                .absoluteOffset(y = (-65).dp, x = (10).dp)
                 .align(Alignment.BottomCenter)
         ) {
             Button(
