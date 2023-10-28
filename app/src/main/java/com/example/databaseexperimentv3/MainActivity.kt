@@ -82,7 +82,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "SplashScreen"
+        startDestination = "ProfilePage"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -911,12 +911,12 @@ fun ProfilePage(navController: NavController){
 
 
     // Load the background image using the Painter class
-    val backgroundImage = painterResource(id = R.drawable.main_profile)
+    val backgroundImage = painterResource(id = R.drawable.profile)
 
 
     Box(
         modifier = Modifier
-            .background(Color(R.color.purple_500))
+            .background(Color(0xFF6200EA))
     ) {
     Image(
         painter = backgroundImage,
