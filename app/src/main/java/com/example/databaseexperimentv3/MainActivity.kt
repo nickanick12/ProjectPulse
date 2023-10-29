@@ -2,6 +2,7 @@ package com.example.databaseexperimentv3
 
 
 import android.content.Context
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -71,8 +72,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NavigationController() {
-    // Initialize Firebase Auth
-    val auth = FirebaseAuth.getInstance()
 
     // Create a NavController
     val navController = rememberNavController()
@@ -80,7 +79,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "ProfilePage"
+        startDestination = "SplashScreen"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -262,6 +261,10 @@ fun LoginPage(navController: NavController){
     var showMessage by remember { mutableStateOf(false) }
     var messageText by remember { mutableStateOf("") }
 
+    val context = LocalContext.current
+    // Load our warping sounds.
+    val mediaPlayer = MediaPlayer.create(context, R.raw.warp)
+
     // Function to handle user login
     fun signIn() {
         if (email.isNotEmpty() && password.isNotEmpty()) {
@@ -282,6 +285,10 @@ fun LoginPage(navController: NavController){
                     // User login failed
                     messageText = "Login Failed: ${e.message}"
                     showMessage = true
+                }
+                .addOnCompleteListener {
+                    // Release the media player after the login attempt is complete
+                    mediaPlayer.release()
                 }
         } else {
             // Handle the case when either email or password is empty
@@ -374,6 +381,7 @@ fun LoginPage(navController: NavController){
         ) {
             Button(
                 onClick = {
+                    mediaPlayer.start()
                     signIn()
                 },
                 modifier = Modifier
