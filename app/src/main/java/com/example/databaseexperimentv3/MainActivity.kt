@@ -2,11 +2,9 @@ package com.example.databaseexperimentv3
 
 
 import android.content.Context
-import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -55,11 +53,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import android.widget.VideoView
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.viewinterop.AndroidView
-import com.google.firebase.firestore.ktx.toObject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,21 +68,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-data class UserData(
-    val username: String = "",
-    val location: String = "",
-) {
-    constructor() : this("", "")
-}
-
 
 @Composable
 fun NavigationController() {
     // Initialize Firebase Auth
     val auth = FirebaseAuth.getInstance()
-
-    // Get the current user
-    val currentUser = auth.currentUser
 
     // Create a NavController
     val navController = rememberNavController()
@@ -111,14 +95,7 @@ fun NavigationController() {
             SignupPage(navController)
         }
         composable("ProfilePage"){
-            // Check if a user is currently signed in
-            if (currentUser != null) {
-                val userId = currentUser.uid // This is the UID of the current user
-                ProfilePage(navController, userId)
-            } else {
-                // No user is signed in
-                MainPage(navController)
-            }
+            ProfilePage(navController)
         }
         composable("UserDetailsPage/{username}/{password}") { backStackEntry ->
             // Extract the username and password from backStackEntry
@@ -138,7 +115,6 @@ fun NavigationController() {
 
 @Composable
 fun SplashScreen(navController: NavController) {
-    val context = LocalContext.current
 
     // Define the resource ID for your MP4 video
     val videoResourceId = R.raw.compsplash
@@ -928,24 +904,7 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
 
 
 @Composable
-fun ProfilePage(navController: NavController, userId: String) {
-    val db = FirebaseFirestore.getInstance()
-
-    // Create a state to hold the user data
-    var userData by remember { mutableStateOf<UserData?>(null) }
-
-    // Fetch user data from Firestore
-    LaunchedEffect(userId) {
-        val userDocument = db.collection("users").document(userId)
-        userDocument.get()
-            .addOnSuccessListener { documentSnapshot ->
-                val user = documentSnapshot.toObject<UserData>()
-                userData = user
-            }
-            .addOnFailureListener {
-                // Handle the error here
-            }
-    }
+fun ProfilePage(navController: NavController) {
 
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.profile)
@@ -994,18 +953,6 @@ fun ProfilePage(navController: NavController, userId: String) {
                     .alpha(0f)
             ) {
                 Text("")
-            }
-
-            // Display user data if available
-            userData?.let { user ->
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxSize()
-                ) {
-                    Text(text = "Username: ${user.username}")
-                    Text(text = "Location: ${user.location}")
-                }
             }
 
         }
