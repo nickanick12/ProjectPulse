@@ -1,6 +1,7 @@
 package com.example.databaseexperimentv3
 
 
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
@@ -108,7 +109,6 @@ fun NavigationController() {
             SplashScreen(navController)
         }
 
-        // Add more destinations as needed
     }
 }
 
@@ -913,6 +913,37 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
 
 @Composable
 fun ProfilePage(navController: NavController) {
+
+    val db = FirebaseFirestore.getInstance()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
+    if (currentUser != null) {
+        val userId = currentUser.uid // Get the current user's ID
+
+        val usersRef = db.collection("users")
+        val userDocRef = usersRef.document(userId)
+
+        userDocRef.get().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val document = task.result
+                if (document.exists()) {
+                    val playerHandle = document.getString("playerHandle")
+                    val birthdate = document.getString("birthdate")
+                    val gender = document.getString("gender")
+                    val location = document.getString("location")
+                    Log.d(TAG, "$playerHandle/$birthdate/$gender/$location")
+                } else {
+                    Log.d(TAG, "The document doesn't exist.")
+                }
+            } else {
+                task.exception?.message?.let {
+                    Log.d(TAG, it)
+                }
+            }
+        }
+    } else {
+        Log.d(TAG, "No user is currently logged in.")
+    }
 
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.profile)
