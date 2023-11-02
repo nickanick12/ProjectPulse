@@ -80,7 +80,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "SplashScreen"
+        startDestination = "UserDetailsPage/{username}/{password}"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -648,8 +648,8 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
     fun signUp(navController: NavController) {
         // Check if Player Handle is not empty and doesn't exceed 12 characters
         if (playerHandle.isNotEmpty() && playerHandle.length <= 12) {
-            // Check if Birthdate is in a valid format (e.g., yyyy-mm-dd)
-            val birthdatePattern = Regex("^\\d{4}-\\d{2}-\\d{2}$")
+            // Check if Birthdate is in a valid format (e.g., mm-dd-yyyy)
+            val birthdatePattern = Regex("^\\d{2}-\\d{2}-\\d{4}$")
             if (birthdate.isNotEmpty() && birthdate.matches(birthdatePattern)) {
                 // Check if Gender is one of the allowed values (e.g., Male, Female, Other)
                 val allowedGenders = setOf("Male", "Female", "Other")
@@ -686,7 +686,7 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
                                                     location = ""
 
                                                     // Navigate to the next screen
-                                                    navController.navigate("NextPage")
+                                                    navController.navigate("ProfilePage")
                                                 }
                                                 .addOnFailureListener { e ->
                                                     // Handle Firestore data storage error
@@ -711,7 +711,7 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
                     showMessage = true
                 }
             } else {
-                messageText = "Invalid birthdate format. Please use yyyy-mm-dd."
+                messageText = "Invalid birthdate format. Please use mm-dd-yyyy."
                 showMessage = true
             }
         } else {
@@ -799,7 +799,7 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
             onValueChange = {
                 birthdate = it
             },
-            hint = "2023-05-12$",
+            hint = "05-12-1996",
             modifier = Modifier
                 .offset(y = (-3f).dp, x = (0).dp)
                 .align(Alignment.Center)
