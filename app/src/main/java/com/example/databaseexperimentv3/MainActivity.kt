@@ -55,7 +55,9 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import android.widget.VideoView
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,7 +82,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "UserDetailsPage/{username}/{password}"
+        startDestination = "ProfilePage"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -914,39 +916,61 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
 @Composable
 fun ProfilePage(navController: NavController) {
 
-    val db = FirebaseFirestore.getInstance()
-    val currentUser = FirebaseAuth.getInstance().currentUser
+    val email = "Nickanick12@gmail.com"
+    val password = "Camera12$"
 
-    if (currentUser != null) {
-        val userId = currentUser.uid // Get the current user's ID
-
-        val usersRef = db.collection("users")
-        val userDocRef = usersRef.document(userId)
-
-        userDocRef.get().addOnCompleteListener { task ->
+    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+        .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val document = task.result
-                if (document.exists()) {
-                    val playerHandle = document.getString("playerHandle")
-                    val birthdate = document.getString("birthdate")
-                    val gender = document.getString("gender")
-                    val location = document.getString("location")
-                    Log.d(TAG, "$playerHandle/$birthdate/$gender/$location")
-                } else {
-                    Log.d(TAG, "The document doesn't exist.")
-                }
+                // Successfully logged in as the debug user
+                val user = FirebaseAuth.getInstance().currentUser
+                // Perform debugging operations
             } else {
-                task.exception?.message?.let {
-                    Log.d(TAG, it)
-                }
+                // Handle login failure
             }
         }
-    } else {
-        Log.d(TAG, "No user is currently logged in.")
-    }
 
-    // Load the background image using the Painter class
-    val backgroundImage = painterResource(id = R.drawable.profile)
+val db = FirebaseFirestore.getInstance()
+val currentUser = FirebaseAuth.getInstance().currentUser
+
+// Load the background image using the Painter class
+val backgroundImage = painterResource(id = R.drawable.profile)
+
+
+
+val userId = currentUser?.uid // Get the current user's ID
+
+val usersRef = db.collection("users")
+val userDocRef = userId?.let { usersRef.document(it) }
+
+var playerHandle by remember { mutableStateOf<String?>(null) }
+var birthdate by remember { mutableStateOf<String?>(null) }
+var gender by remember { mutableStateOf<String?>(null) }
+var location by remember { mutableStateOf<String?>(null) }
+
+if (currentUser != null) {
+    userDocRef?.get()?.addOnCompleteListener { task ->
+        if (task.isSuccessful) {
+            val document = task.result
+            if (document.exists()) {
+                playerHandle = document.getString("playerHandle")
+                birthdate = document.getString("birthdate")
+                gender = document.getString("gender")
+                location = document.getString("location")
+                Log.d(TAG, "Profile UserDetails SETUP COMPLETE!")
+
+            } else {
+                Log.d(TAG, "The document doesn't exist. SETUP FAILED")
+            }
+        } else {
+            task.exception?.message?.let {
+                Log.d(TAG, it)
+            }
+        }
+    }
+} else {
+    Log.d(TAG, "No user is currently logged in. SETUP FAILED")
+}
 
     Box(
         modifier = Modifier
@@ -960,8 +984,51 @@ fun ProfilePage(navController: NavController) {
             .fillMaxSize()
 
     )
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .absoluteOffset(100.dp,130.dp)
+        ) {
+            Text(
+                text = playerHandle ?: "Loading...",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Cyan,
+                modifier = Modifier
+                    .padding(8.dp)
 
+            )
+        }
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .absoluteOffset(137.dp,183.dp)
+        ) {
+            Text(
+                text = gender ?: "Loading...",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.DarkGray,
+                modifier = Modifier
+                    .padding(8.dp)
 
+            )
+        }
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .absoluteOffset(193.dp,183.dp)
+        ) {
+            Text(
+                text = location ?: "Loading...",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.DarkGray,
+                modifier = Modifier
+                    .padding(8.dp)
+
+            )
+        }
         Box(
             modifier = Modifier
                 .absoluteOffset(y = (-55).dp, x = (0).dp)
