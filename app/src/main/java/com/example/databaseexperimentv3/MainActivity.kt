@@ -110,6 +110,9 @@ fun NavigationController() {
         composable("SplashScreen"){
             SplashScreen(navController)
         }
+        composable("SettingsPage"){
+            SettingsPage(navController)
+        }
 
     }
 }
@@ -147,7 +150,29 @@ fun SplashScreen(navController: NavController) {
     }
 }
 
+@Composable
+fun SettingsPage(navController: NavController){
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.settings)
 
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Background Image
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+        )
+    }
+
+    LaunchedEffect(true) {
+        delay(3000)
+        navController.navigate("ProfilePage")
+    }
+}
 @Composable
 fun MainPage(navController: NavController) {
 
@@ -1053,7 +1078,21 @@ if (currentUser != null) {
                 },
                 modifier = Modifier
                     .padding(bottom = 16.dp)
-                    .offset(x = 240.dp, y = (-655).dp)
+                    .offset(x = 250.dp, y = (-710).dp)
+                    .width(50.dp)
+                    .height(50.dp)
+                    .alpha(0f)
+            ) {
+                Text("")
+            }
+
+            Button(
+                onClick = {
+                    navController.navigate("SettingsPage")
+                },
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .offset(x = 128.dp, y = (-710).dp)
                     .width(50.dp)
                     .height(50.dp)
                     .alpha(0f)
