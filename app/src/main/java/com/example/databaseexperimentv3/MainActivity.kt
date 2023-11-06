@@ -55,9 +55,8 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import android.widget.VideoView
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.zIndex
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,7 +81,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "ProfilePage"
+        startDestination = "MainPage"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -940,20 +939,6 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
 
 @Composable
 fun ProfilePage(navController: NavController) {
-
-    val email = "Nickanick12@gmail.com"
-    val password = "Camera12$"
-
-    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-        .addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                // Successfully logged in as the debug user
-                val user = FirebaseAuth.getInstance().currentUser
-                // Perform debugging operations
-            } else {
-                // Handle login failure
-            }
-        }
 
 val db = FirebaseFirestore.getInstance()
 val currentUser = FirebaseAuth.getInstance().currentUser
