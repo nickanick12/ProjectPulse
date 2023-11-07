@@ -55,9 +55,12 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import android.widget.VideoView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 
 class MainActivity : ComponentActivity() {
@@ -956,7 +959,6 @@ fun GetUser(onUserLoaded: (User) -> Unit) {
                     val gender = document.getString("gender")
                     val location = document.getString("location")
                     val userXP = document.getLong("xp")?.toInt() ?: 0
-
                     // Create a User object with the fetched data
                     val user = User(playerHandle, gender, location, userXP)
 
@@ -980,13 +982,48 @@ data class User(
     val playerHandle: String?,
     val gender: String?,
     val location: String?,
-    val xp: Int
+    val xp: Int,
 )
 
 fun adminLogin(){
     val email = "Nickanick12@gmail.com"
     val password = "Camera12$"
     FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+}
+
+@Composable
+fun AppXPTimer(userId: String) {
+    // Create a state to hold the user's XP
+    var userXP by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(Unit) {
+        val xpPerSecond = 5 // XP to give every second
+
+        val job = CoroutineScope(Dispatchers.Default).launch {
+            while (true) {
+                val db = FirebaseFirestore.getInstance()
+                val userRef = db.collection("users").document(userId)
+
+                // Fetch the user's XP from Firebase
+                userRef.get().addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val userXPFromFirebase = document.getLong("xp")?.toInt() ?: 0
+                        userXP = userXPFromFirebase
+                    }
+                }
+
+                delay(1000) // Wait for 1 second
+                userXP += xpPerSecond
+
+                // Update the user's XP in Firebase
+                userRef.update("xp", userXP)
+            }
+        }
+
+        onDispose {
+            job.cancel()
+        }
+    }
 }
 
 @Composable
@@ -1001,6 +1038,8 @@ fun ProfilePage(navController: NavController) {
 
     var user: User by remember { mutableStateOf(User(null, null, null, 0) )}
 
+    // Obtain the currentUserUID separately
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     // Call the GetUser function and update the user object when the data is available
     GetUser { currentUser ->
         user = currentUser
@@ -1011,7 +1050,9 @@ fun ProfilePage(navController: NavController) {
     val gender = user.gender
     val location = user.location
     val userXP = user.xp
-
+    if (currentUserId != null) {
+        AppXPTimer(currentUserId)
+    }
 
 
 
@@ -1051,6 +1092,24 @@ fun ProfilePage(navController: NavController) {
                     .padding(8.dp)
 
             )
+        }
+        // Profile Picture
+        Surface(
+            modifier = Modifier
+                .size(87.dp)
+                .padding(5.dp)
+                .offset(35.dp,120.dp),
+            shape = CircleShape,
+            border = BorderStroke(0.5.dp, Color.LightGray),
+            color = Color.Transparent
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.man),
+                contentDescription = "profile image",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(134.dp)
+            )
+
         }
 
         // XP BAR
