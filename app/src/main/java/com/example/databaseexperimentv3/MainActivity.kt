@@ -57,6 +57,7 @@ import kotlinx.coroutines.delay
 import android.widget.VideoView
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 
 
 class MainActivity : ComponentActivity() {
@@ -913,8 +914,6 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
 
 }
 
-
-
 @Composable
 fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, modifier: Modifier = Modifier, textStyle: TextStyle = TextStyle.Default) {
     var isHintDisplayed by remember { mutableStateOf(value.isEmpty()) }
@@ -939,50 +938,30 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
 }
 
 @Composable
-fun ProfilePage(navController: NavController) {
-
-
-    //START Debugging ADMIN Login
-    val email = "Nickanick12@gmail.com"
-    val password = "Camera12$"
-    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-    //END Debugging ADMIN Login
-
+fun GetUser(onUserLoaded: (User) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     val currentUser = FirebaseAuth.getInstance().currentUser
 
-    // Load the background image using the Painter class
-    val backgroundImage = painterResource(id = R.drawable.profile)
-
-
-
-    val userId = currentUser?.uid // Get the current user's ID
-
+    val userId = currentUser?.uid
     val usersRef = db.collection("users")
     val userDocRef = userId?.let { usersRef.document(it) }
-
-    var playerHandle by remember { mutableStateOf<String?>(null) }
-    var birthdate by remember { mutableStateOf<String?>(null) }
-    var gender by remember { mutableStateOf<String?>(null) }
-    var location by remember { mutableStateOf<String?>(null) }
-
-    // Define User XP
-    var userXP by remember {
-        mutableIntStateOf(0)
-    }
 
     if (currentUser != null) {
         userDocRef?.get()?.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val document = task.result
                 if (document.exists()) {
-                    playerHandle = document.getString("playerHandle")
-                    birthdate = document.getString("birthdate")
-                    gender = document.getString("gender")
-                    location = document.getString("location")
-                    userXP = document.getLong("xp")?.toInt() ?: 0
-                    Log.d(TAG, "Profile UserDetails SETUP COMPLETE!")
+                    // Parse user data from the Firestore document
+                    val playerHandle = document.getString("playerHandle")
+                    val gender = document.getString("gender")
+                    val location = document.getString("location")
+                    val userXP = document.getLong("xp")?.toInt() ?: 0
 
+                    // Create a User object with the fetched data
+                    val user = User(playerHandle, gender, location, userXP)
+
+                    // Call the callback function with the user data
+                    onUserLoaded(user)
                 } else {
                     Log.d(TAG, "The document doesn't exist. SETUP FAILED")
                 }
@@ -995,19 +974,69 @@ fun ProfilePage(navController: NavController) {
     } else {
         Log.d(TAG, "No user is currently logged in. SETUP FAILED")
     }
+}
+
+data class User(
+    val playerHandle: String?,
+    val gender: String?,
+    val location: String?,
+    val xp: Int
+)
+
+fun adminLogin(){
+    val email = "Nickanick12@gmail.com"
+    val password = "Camera12$"
+    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+}
+
+@Composable
+fun ProfilePage(navController: NavController) {
+    //START Debugging ADMIN Login
+    adminLogin()
+    //END Debugging ADMIN Login
+
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.profile)
+    val xpImage = painterResource(id = R.drawable.level)
+
+    var user: User by remember { mutableStateOf(User(null, null, null, 0) )}
+
+    // Call the GetUser function and update the user object when the data is available
+    GetUser { currentUser ->
+        user = currentUser
+    }
+
+    // Access user data through the user object
+    val playerHandle = user.playerHandle
+    val gender = user.gender
+    val location = user.location
+    val userXP = user.xp
+
+
+
 
     Box(
         modifier = Modifier
             .background(Color(0xFF6200EA))
     ) {
     Image(
-        painter = backgroundImage,
+        painter = xpImage,
         contentDescription = null,
-        contentScale = ContentScale.FillBounds,
+        contentScale = ContentScale.Fit,
         modifier = Modifier
-            .fillMaxSize()
+            .absoluteOffset(320.dp, 90.dp)
+            .zIndex(10f)
+            .size(50.dp,50.dp)
 
     )
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+
+        )
         Box(
             modifier = Modifier
                 .padding(16.dp)
@@ -1034,9 +1063,24 @@ fun ProfilePage(navController: NavController) {
                 .border(2.5.dp, Color.DarkGray, CircleShape)
         ) {
             LinearProgressIndicator(
-                progress = userXP.toFloat() / 1000,
+                progress = (userXP % 1000).toFloat() / 1000,
                 modifier = Modifier
                     .fillMaxSize()
+            )
+        }
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .absoluteOffset(280.dp, 95.dp)
+        ) {
+            Text(
+                text = (userXP / 1000).toString(),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Green,
+                modifier = Modifier
+                    .padding(8.dp)
+
             )
         }
 
