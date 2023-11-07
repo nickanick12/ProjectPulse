@@ -117,6 +117,9 @@ fun NavigationController() {
         composable("SettingsPage"){
             SettingsPage(navController)
         }
+        composable("MedalsPage"){
+            MedalsPage(navController)
+        }
 
     }
 }
@@ -158,6 +161,8 @@ fun SplashScreen(navController: NavController) {
 fun SettingsPage(navController: NavController){
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.settings)
+    // Allows users to gain xp in activity
+    FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -175,6 +180,34 @@ fun SettingsPage(navController: NavController){
     LaunchedEffect(true) {
         delay(3000)
         navController.navigate("ProfilePage")
+    }
+}
+@Composable
+fun MedalsPage(navController: NavController) {
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.medals)
+    // Allows users to gain xp in activity
+    FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Background Image
+        Image(
+            painter = backgroundImage,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
+        )
+        Button(
+            onClick = { navController.navigate("ProfilePage") },
+            modifier = Modifier
+                .size(width = 130.dp, height = 80.dp)
+                .offset(y = (745).dp, x = (135).dp)
+                .alpha(0f)
+        ) {
+
+        }
     }
 }
 @Composable
@@ -1023,6 +1056,8 @@ fun AppXPTimer(userId: String) {
         onDispose {
             job.cancel()
         }
+
+
     }
 }
 
@@ -1038,8 +1073,7 @@ fun ProfilePage(navController: NavController) {
 
     var user: User by remember { mutableStateOf(User(null, null, null, 0) )}
 
-    // Obtain the currentUserUID separately
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+
     // Call the GetUser function and update the user object when the data is available
     GetUser { currentUser ->
         user = currentUser
@@ -1050,9 +1084,8 @@ fun ProfilePage(navController: NavController) {
     val gender = user.gender
     val location = user.location
     val userXP = user.xp
-    if (currentUserId != null) {
-        AppXPTimer(currentUserId)
-    }
+    FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
+
 
 
 
@@ -1219,6 +1252,20 @@ fun ProfilePage(navController: NavController) {
                 Text("")
             }
 
+            Button(
+                onClick = {
+                    navController.navigate("MedalsPage")
+                },
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .offset(x = 189.dp, y = (-715).dp)
+                    .width(50.dp)
+                    .height(50.dp)
+                    .alpha(0f)
+            ) {
+                Text("")
+            }
+
         }
 
    }
@@ -1230,6 +1277,9 @@ fun ProfilePage(navController: NavController) {
 fun TodoApp(navController: NavController) {
     var newItemText by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Allows users to gain xp in activity
+    FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
 
     // Initialize Firebase Firestore
     val db = FirebaseFirestore.getInstance()
@@ -1344,7 +1394,7 @@ fun TodoApp(navController: NavController) {
         onClick = { navController.navigate("ProfilePage") },
         modifier = Modifier
             .size(width = 165.dp, height = 50.dp)
-            .offset(y = (715).dp, x = (110).dp)
+            .offset(y = (770).dp, x = (125).dp)
             .alpha(0f)
     ) {
 
@@ -1382,7 +1432,8 @@ fun TodoItem(item: String, db: FirebaseFirestore) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp)
-            .border(1.dp, Color.Magenta)
+            .border(3.dp, Color.Magenta, shape = CircleShape)
+            .background(Color(0x80FFFFFF), shape = CircleShape)
             .combinedClickable(
                 onClick = {
                 },
