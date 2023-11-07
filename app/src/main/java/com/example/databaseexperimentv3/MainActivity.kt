@@ -55,6 +55,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import android.widget.VideoView
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.viewinterop.AndroidView
 
 
@@ -81,7 +82,7 @@ fun NavigationController() {
     // Set up navigation
     NavHost(
         navController = navController,
-        startDestination = "MainPage"
+        startDestination = "ProfilePage"
     ) {
         composable("MainPage") {
             MainPage(navController)
@@ -699,7 +700,8 @@ fun UserDetailsPage(navController: NavController, username: String?, password: S
                                                 "playerHandle" to playerHandle,
                                                 "birthdate" to birthdate,
                                                 "gender" to gender,
-                                                "location" to location
+                                                "location" to location,
+                                                "xp" to 0
                                             )
                                             db.collection("users").document(it)
                                                 .set(user)
@@ -936,51 +938,63 @@ fun HintTextField(value: String, onValueChange: (String) -> Unit, hint: String, 
     }
 }
 
-
 @Composable
 fun ProfilePage(navController: NavController) {
 
-val db = FirebaseFirestore.getInstance()
-val currentUser = FirebaseAuth.getInstance().currentUser
 
-// Load the background image using the Painter class
-val backgroundImage = painterResource(id = R.drawable.profile)
+    //START Debugging ADMIN Login
+    val email = "Nickanick12@gmail.com"
+    val password = "Camera12$"
+    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+    //END Debugging ADMIN Login
+
+    val db = FirebaseFirestore.getInstance()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
+    // Load the background image using the Painter class
+    val backgroundImage = painterResource(id = R.drawable.profile)
 
 
 
-val userId = currentUser?.uid // Get the current user's ID
+    val userId = currentUser?.uid // Get the current user's ID
 
-val usersRef = db.collection("users")
-val userDocRef = userId?.let { usersRef.document(it) }
+    val usersRef = db.collection("users")
+    val userDocRef = userId?.let { usersRef.document(it) }
 
-var playerHandle by remember { mutableStateOf<String?>(null) }
-var birthdate by remember { mutableStateOf<String?>(null) }
-var gender by remember { mutableStateOf<String?>(null) }
-var location by remember { mutableStateOf<String?>(null) }
+    var playerHandle by remember { mutableStateOf<String?>(null) }
+    var birthdate by remember { mutableStateOf<String?>(null) }
+    var gender by remember { mutableStateOf<String?>(null) }
+    var location by remember { mutableStateOf<String?>(null) }
 
-if (currentUser != null) {
-    userDocRef?.get()?.addOnCompleteListener { task ->
-        if (task.isSuccessful) {
-            val document = task.result
-            if (document.exists()) {
-                playerHandle = document.getString("playerHandle")
-                birthdate = document.getString("birthdate")
-                gender = document.getString("gender")
-                location = document.getString("location")
-                Log.d(TAG, "Profile UserDetails SETUP COMPLETE!")
+    // Define User XP
+    var userXP by remember {
+        mutableIntStateOf(0)
+    }
 
+    if (currentUser != null) {
+        userDocRef?.get()?.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val document = task.result
+                if (document.exists()) {
+                    playerHandle = document.getString("playerHandle")
+                    birthdate = document.getString("birthdate")
+                    gender = document.getString("gender")
+                    location = document.getString("location")
+                    userXP = document.getLong("xp")?.toInt() ?: 0
+                    Log.d(TAG, "Profile UserDetails SETUP COMPLETE!")
+
+                } else {
+                    Log.d(TAG, "The document doesn't exist. SETUP FAILED")
+                }
             } else {
-                Log.d(TAG, "The document doesn't exist. SETUP FAILED")
-            }
-        } else {
-            task.exception?.message?.let {
-                Log.d(TAG, it)
+                task.exception?.message?.let {
+                    Log.d(TAG, it)
+                }
             }
         }
+    } else {
+        Log.d(TAG, "No user is currently logged in. SETUP FAILED")
     }
-} else {
-    Log.d(TAG, "No user is currently logged in. SETUP FAILED")
-}
 
     Box(
         modifier = Modifier
@@ -997,7 +1011,7 @@ if (currentUser != null) {
         Box(
             modifier = Modifier
                 .padding(16.dp)
-                .absoluteOffset(100.dp,130.dp)
+                .absoluteOffset(100.dp, 130.dp)
         ) {
             Text(
                 text = playerHandle ?: "Loading...",
@@ -1009,10 +1023,27 @@ if (currentUser != null) {
 
             )
         }
+
+        // XP BAR
+        Card(
+            modifier = Modifier
+                .height(30.dp)
+                .width(300.dp)
+                .padding(8.dp)
+                .absoluteOffset(30.dp, 100.dp)
+                .border(2.5.dp, Color.DarkGray, CircleShape)
+        ) {
+            LinearProgressIndicator(
+                progress = userXP.toFloat() / 1000,
+                modifier = Modifier
+                    .fillMaxSize()
+            )
+        }
+
         Box(
             modifier = Modifier
                 .padding(16.dp)
-                .absoluteOffset(137.dp,183.dp)
+                .absoluteOffset(137.dp, 183.dp)
         ) {
             Text(
                 text = gender ?: "Loading...",
@@ -1027,7 +1058,7 @@ if (currentUser != null) {
         Box(
             modifier = Modifier
                 .padding(16.dp)
-                .absoluteOffset(193.dp,183.dp)
+                .absoluteOffset(193.dp, 183.dp)
         ) {
             Text(
                 text = location ?: "Loading...",
