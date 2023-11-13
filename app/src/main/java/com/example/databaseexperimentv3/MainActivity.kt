@@ -560,10 +560,7 @@ fun SignupPage(navController: NavController){
     }
 
 
-    // Create a coroutine scope
     val coroutineScope = rememberCoroutineScope()
-
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -660,7 +657,7 @@ fun SignupPage(navController: NavController){
         ) {
             Button(
                 onClick = {
-                    keyboardController?.hide() // Hide the keyboard
+                    keyboardController?.hide()
                     signUp(navController)
                 },
                 modifier = Modifier
@@ -679,7 +676,7 @@ fun SignupPage(navController: NavController){
     LaunchedEffect(showMessage) {
         if (showMessage) {
             coroutineScope.launch {
-                delay(3000L) // Delay for 3 seconds (3000 milliseconds)
+                delay(3000L)
                 showMessage = false // Reset showMessage after the delay
             }
         }
@@ -1045,7 +1042,7 @@ fun AppXPTimer(userId: String) {
                     }
                 }
 
-                delay(1000) // Wait for 1 second
+                delay(1000)
                 userXP += xpPerSecond
 
                 // Update the user's XP in Firebase
@@ -1117,7 +1114,7 @@ fun ProfilePage(navController: NavController) {
                 .absoluteOffset(100.dp, 130.dp)
         ) {
             Text(
-                text = playerHandle ?: "Loading...",
+                text = playerHandle ?: "Loading",
                 fontSize = 30.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Cyan,
