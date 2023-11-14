@@ -1057,7 +1057,22 @@ fun AppXPTimer(userId: String) {
 
     }
 }
+fun grantXP(userId: String) {
+    val xpToAdd = 100
 
+    val db = FirebaseFirestore.getInstance()
+    val userRef = db.collection("users").document(userId)
+
+    userRef.get().addOnSuccessListener { document ->
+        if (document.exists()) {
+            val userXPFromFirebase = document.getLong("xp")?.toInt() ?: 0
+            val updatedXP = userXPFromFirebase + xpToAdd
+
+            // Update the user's XP in Firebase
+            userRef.update("xp", updatedXP)
+        }
+    }
+}
 @Composable
 fun ProfilePage(navController: NavController) {
     //START Debugging ADMIN Login
@@ -1097,7 +1112,7 @@ fun ProfilePage(navController: NavController) {
         modifier = Modifier
             .absoluteOffset(320.dp, 90.dp)
             .zIndex(10f)
-            .size(50.dp,50.dp)
+            .size(50.dp, 50.dp)
 
     )
         Image(
@@ -1128,7 +1143,7 @@ fun ProfilePage(navController: NavController) {
             modifier = Modifier
                 .size(87.dp)
                 .padding(5.dp)
-                .offset(35.dp,120.dp),
+                .offset(35.dp, 120.dp),
             shape = CircleShape,
             border = BorderStroke(0.5.dp, Color.LightGray),
             color = Color.Transparent
@@ -1422,8 +1437,38 @@ fun TodoList(items: List<String>, db: FirebaseFirestore) {
 @Composable
 // Composable for rendering individual to-do items
 fun TodoItem(item: String, db: FirebaseFirestore) {
-    val isDeletingWarningVisible by remember { mutableStateOf(false) }
+    var isDeletionInProgress by remember { mutableStateOf(false) }
+    var stopDeletion by remember { mutableStateOf(false) }
+    var countdownSeconds by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
+
+    // Firebase Init
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid
+
+    // Use LaunchedEffect to observe changes in isDeletionInProgress
+    LaunchedEffect(isDeletionInProgress && !stopDeletion) {
+        if (isDeletionInProgress) {
+            // Cool Down for the Cooldown function
+            delay(3000)
+
+            // Start the countdown only when deletion is in progress
+            for (i in countdownSeconds downTo 1) {
+                delay(1000)
+                countdownSeconds = i
+            }
+
+            // After the countdown, perform the deletion and reset flags
+            if (userId != null) {
+                grantXP(userId)
+            }
+            deleteDataFromFirestore(item, db, context)
+
+            isDeletionInProgress = false
+            stopDeletion = false
+            countdownSeconds = 0
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -1433,18 +1478,24 @@ fun TodoItem(item: String, db: FirebaseFirestore) {
             .background(Color(0x80FFFFFF), shape = CircleShape)
             .combinedClickable(
                 onClick = {
+                    // Handle regular click action here
+                    stopDeletion = true
+                    isDeletionInProgress = false
                 },
                 onLongClick = {
-                    deleteDataFromFirestore(item, db, context)
-                }
+                    stopDeletion = false
+                    if (!isDeletionInProgress) {
+                        // Start the deletion process
+                        isDeletionInProgress = true
+                        countdownSeconds = 10 // Set the cool down duration
+                    }
+                },
             )
     ) {
-
-        // Currently Unused due to various bugs.
-        //This displays a deleting warning if a user accidentally taps a TODO.
-        if (isDeletingWarningVisible) {
+        if (isDeletionInProgress && countdownSeconds > 0) {
+            // Display the countdown during the deletion process
             Text(
-                text = "DELETING",
+                text = "Deleting: $countdownSeconds seconds",
                 modifier = Modifier
                     .padding(16.dp)
                     .align(Alignment.Center)
@@ -1456,6 +1507,7 @@ fun TodoItem(item: String, db: FirebaseFirestore) {
                 )
             )
         } else {
+            // Display the regular item text
             Text(
                 text = item,
                 modifier = Modifier
