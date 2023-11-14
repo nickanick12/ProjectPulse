@@ -56,6 +56,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import android.widget.VideoView
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
@@ -187,7 +188,15 @@ fun MedalsPage(navController: NavController) {
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.medals)
     // Allows users to gain xp in activity
-    FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
+   // FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
+
+    // State to track whether the text should be visible
+    var isTextVisible by remember { mutableStateOf(false) }
+
+    // State to track the user's level
+    var userLevel by remember { mutableStateOf(0) }
+
+    userLevel = FirebaseAuth.getInstance().currentUser?.uid?.let { getUserLevel(it)}!!
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -199,14 +208,43 @@ fun MedalsPage(navController: NavController) {
             contentScale = ContentScale.FillBounds,
             modifier = Modifier.fillMaxSize()
         )
+
+        // Empty Button with alpha set to 0
         Button(
             onClick = { navController.navigate("ProfilePage") },
             modifier = Modifier
                 .size(width = 130.dp, height = 80.dp)
                 .offset(y = (745).dp, x = (135).dp)
                 .alpha(0f)
-        ) {
+        ) {}
 
+        // Clickable Image (displayed only if the user is level 5 or greater)
+        if (userLevel >= 5) {
+            Image(
+                painter = painterResource(id = R.drawable.nextlevel),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(width = 55.dp, height = 55.dp)
+                    .offset(y = (170).dp, x = (60).dp)
+                    .clickable {
+                        // When clicked, show the text for 3 seconds
+                        isTextVisible = true
+                        CoroutineScope(Dispatchers.Main).launch {
+                            delay(3000)
+                            isTextVisible = false
+                        }
+                    }
+            )
+        }
+
+        // Display text if isTextVisible is true
+        if (isTextVisible) {
+            Text(
+                text = "Reach Level 5",
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .background(Color.White)
+            )
         }
     }
 }
@@ -1007,6 +1045,30 @@ fun GetUser(onUserLoaded: (User) -> Unit) {
         Log.d(TAG, "No user is currently logged in. SETUP FAILED")
     }
 }
+@Composable
+fun getUserLevel(userId: String): Int {
+    // Use remember to persist the value across recompositions
+    var userXP by remember { mutableIntStateOf(0) }
+
+    // Use LaunchedEffect to trigger the side effect of fetching user XP
+    LaunchedEffect(userId) {
+        // Perform the network request or any other side effect here
+        val db = FirebaseFirestore.getInstance()
+        val userRef = db.collection("users").document(userId)
+
+        // Fetch the user's XP from Firebase
+        userRef.get().addOnSuccessListener { document ->
+            if (document.exists()) {
+                val userXPFromFirebase = document.getLong("xp")?.toInt() ?: 0
+                // Update the userXP value
+                userXP = (userXPFromFirebase / 1000) + 1
+            }
+        }
+    }
+
+    // Return the userXP value
+    return userXP
+}
 
 data class User(
     val playerHandle: String?,
@@ -1030,16 +1092,15 @@ fun AppXPTimer(userId: String) {
         val xpPerSecond = 5 // XP to give every second
 
         val job = CoroutineScope(Dispatchers.Default).launch {
-            while (true) {
-                val db = FirebaseFirestore.getInstance()
-                val userRef = db.collection("users").document(userId)
+            val db = FirebaseFirestore.getInstance()
+            val userRef = db.collection("users").document(userId)
 
+            while (true) {
                 // Fetch the user's XP from Firebase
-                userRef.get().addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        val userXPFromFirebase = document.getLong("xp")?.toInt() ?: 0
-                        userXP = userXPFromFirebase
-                    }
+                val document = userRef.get().await()
+                if (document.exists()) {
+                    val userXPFromFirebase = document.getLong("xp")?.toInt() ?: 0
+                    userXP = userXPFromFirebase
                 }
 
                 delay(1000)
@@ -1053,8 +1114,6 @@ fun AppXPTimer(userId: String) {
         onDispose {
             job.cancel()
         }
-
-
     }
 }
 fun grantXP(userId: String) {
@@ -1289,9 +1348,6 @@ fun ProfilePage(navController: NavController) {
 fun TodoApp(navController: NavController) {
     var newItemText by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
-
-    // Allows users to gain xp in activity
-    FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
 
     // Initialize Firebase Firestore
     val db = FirebaseFirestore.getInstance()
