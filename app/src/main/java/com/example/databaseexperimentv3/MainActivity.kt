@@ -1116,8 +1116,9 @@ fun AppXPTimer(userId: String) {
         }
     }
 }
+
 fun grantXP(userId: String) {
-    val xpToAdd = 100
+    val xpToAdd = 1000
 
     val db = FirebaseFirestore.getInstance()
     val userRef = db.collection("users").document(userId)
@@ -1132,18 +1133,19 @@ fun grantXP(userId: String) {
         }
     }
 }
+
 @Composable
 fun ProfilePage(navController: NavController) {
-    //START Debugging ADMIN Login
+    // START Debugging ADMIN Login
     adminLogin()
-    //END Debugging ADMIN Login
+    // END Debugging ADMIN Login
 
     // Load the background image using the Painter class
     val backgroundImage = painterResource(id = R.drawable.profile)
     val xpImage = painterResource(id = R.drawable.level)
 
-    var user: User by remember { mutableStateOf(User(null, null, null, 0) )}
-
+    // State to hold user data
+    var user: User by remember { mutableStateOf(User(null, null, null, 0)) }
 
     // Call the GetUser function and update the user object when the data is available
     GetUser { currentUser ->
@@ -1151,52 +1153,52 @@ fun ProfilePage(navController: NavController) {
     }
 
     // Access user data through the user object
-    val playerHandle = user.playerHandle
-    val gender = user.gender
-    val location = user.location
+    val playerHandle = user.playerHandle ?: "Loading"
+    val gender = user.gender ?: "Loading..."
+    val location = user.location ?: "Loading..."
     val userXP = user.xp
+
+    // Allows user to gain experience passively
     FirebaseAuth.getInstance().currentUser?.uid?.let { AppXPTimer(it) }
 
-
-
-
+    // Main Background & Imagery
     Box(
         modifier = Modifier
             .background(Color(0xFF6200EA))
     ) {
-    Image(
-        painter = xpImage,
-        contentDescription = null,
-        contentScale = ContentScale.Fit,
-        modifier = Modifier
-            .absoluteOffset(320.dp, 90.dp)
-            .zIndex(10f)
-            .size(50.dp, 50.dp)
+        Image(
+            painter = xpImage,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .absoluteOffset(320.dp, 90.dp)
+                .zIndex(10f)
+                .size(50.dp, 50.dp)
+        )
 
-    )
         Image(
             painter = backgroundImage,
             contentDescription = null,
             contentScale = ContentScale.FillBounds,
             modifier = Modifier
                 .fillMaxSize()
-
         )
+
+        // Player Handle
         Box(
             modifier = Modifier
                 .padding(16.dp)
                 .absoluteOffset(100.dp, 130.dp)
         ) {
             Text(
-                text = playerHandle ?: "Loading",
+                text = playerHandle,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Cyan,
-                modifier = Modifier
-                    .padding(8.dp)
-
+                modifier = Modifier.padding(8.dp)
             )
         }
+
         // Profile Picture
         Surface(
             modifier = Modifier
@@ -1213,7 +1215,6 @@ fun ProfilePage(navController: NavController) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(134.dp)
             )
-
         }
 
         // XP BAR
@@ -1227,56 +1228,56 @@ fun ProfilePage(navController: NavController) {
         ) {
             LinearProgressIndicator(
                 progress = (userXP % 1000).toFloat() / 1000,
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             )
         }
+
+        // Current Level
         Box(
             modifier = Modifier
                 .padding(16.dp)
-                .absoluteOffset(280.dp, 95.dp)
+                .absoluteOffset(130.dp, 95.dp)
         ) {
             Text(
-                text = (userXP / 1000).toString(),
+                text = "Current Level: ${userXP / 1000}",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Green,
-                modifier = Modifier
-                    .padding(8.dp)
-
+                modifier = Modifier.padding(8.dp)
             )
         }
 
+        // Gender
         Box(
             modifier = Modifier
                 .padding(16.dp)
                 .absoluteOffset(137.dp, 183.dp)
         ) {
             Text(
-                text = gender ?: "Loading...",
+                text = gender,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.DarkGray,
-                modifier = Modifier
-                    .padding(8.dp)
-
+                modifier = Modifier.padding(8.dp)
             )
         }
+
+        // Location
         Box(
             modifier = Modifier
                 .padding(16.dp)
                 .absoluteOffset(193.dp, 183.dp)
         ) {
             Text(
-                text = location ?: "Loading...",
+                text = location,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.DarkGray,
-                modifier = Modifier
-                    .padding(8.dp)
-
+                modifier = Modifier.padding(8.dp)
             )
         }
+
+        // Navigation Buttons
         Box(
             modifier = Modifier
                 .absoluteOffset(y = (-55).dp, x = (0).dp)
@@ -1294,6 +1295,7 @@ fun ProfilePage(navController: NavController) {
             ) {
                 Text("")
             }
+
             Button(
                 onClick = {
                     navController.navigate("MainPage")
@@ -1336,12 +1338,9 @@ fun ProfilePage(navController: NavController) {
             ) {
                 Text("")
             }
-
         }
-
-   }
+    }
 }
-
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -1442,9 +1441,9 @@ fun TodoApp(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.Cyan.copy(alpha = 0.3f))
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 5.dp),
                 textStyle = TextStyle(
-                    color = Color.Red,
+                    color = Color.Black,
                     fontSize = 25.sp,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold
@@ -1468,7 +1467,6 @@ fun TodoApp(navController: NavController) {
 
     }
 }
-
 
 @Composable
 // Create a LazyColumn to display the list of to-do items
@@ -1494,35 +1492,30 @@ fun TodoList(items: List<String>, db: FirebaseFirestore) {
 // Composable for rendering individual to-do items
 fun TodoItem(item: String, db: FirebaseFirestore) {
     var isDeletionInProgress by remember { mutableStateOf(false) }
-    var stopDeletion by remember { mutableStateOf(false) }
-    var countdownSeconds by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
 
     // Firebase Init
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid
 
+    val showDialog = remember { mutableStateOf(false) }
+
     // Use LaunchedEffect to observe changes in isDeletionInProgress
-    LaunchedEffect(isDeletionInProgress && !stopDeletion) {
+    LaunchedEffect(isDeletionInProgress) {
         if (isDeletionInProgress) {
             // Cool Down for the Cooldown function
             delay(3000)
 
-            // Start the countdown only when deletion is in progress
-            for (i in countdownSeconds downTo 1) {
-                delay(1000)
-                countdownSeconds = i
-            }
+            // Show the dialog only when deletion is in progress
+            showDialog.value = true
 
-            // After the countdown, perform the deletion and reset flags
+            // After the cooldown, perform the deletion and reset flags
             if (userId != null) {
                 grantXP(userId)
             }
             deleteDataFromFirestore(item, db, context)
 
             isDeletionInProgress = false
-            stopDeletion = false
-            countdownSeconds = 0
         }
     }
 
@@ -1532,26 +1525,17 @@ fun TodoItem(item: String, db: FirebaseFirestore) {
             .padding(10.dp)
             .border(3.dp, Color.Magenta, shape = CircleShape)
             .background(Color(0x80FFFFFF), shape = CircleShape)
-            .combinedClickable(
-                onClick = {
-                    // Handle regular click action here
-                    stopDeletion = true
-                    isDeletionInProgress = false
-                },
-                onLongClick = {
-                    stopDeletion = false
-                    if (!isDeletionInProgress) {
-                        // Start the deletion process
-                        isDeletionInProgress = true
-                        countdownSeconds = 10 // Set the cool down duration
-                    }
-                },
-            )
+            .clickable {
+                // Handle regular click action here
+                if (!isDeletionInProgress) {
+                    showDialog.value = true
+                }
+            }
     ) {
-        if (isDeletionInProgress && countdownSeconds > 0) {
-            // Display the countdown during the deletion process
+        if (isDeletionInProgress) {
+            // Display the deletion in progress message
             Text(
-                text = "Deleting: $countdownSeconds seconds",
+                text = "Deleting...",
                 modifier = Modifier
                     .padding(16.dp)
                     .align(Alignment.Center)
@@ -1576,6 +1560,46 @@ fun TodoItem(item: String, db: FirebaseFirestore) {
                 )
             )
         }
+    }
+
+    if (showDialog.value) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog.value = false
+            },
+            title = {
+                Text("Complete Challenge")
+            },
+            text = {
+                Text("Do you want to complete this Challenge?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Handle completion action here
+                        if (userId != null) {
+                            grantXP(userId)
+                        }
+                        deleteDataFromFirestore(item, db, context)
+                        isDeletionInProgress = false
+                        showDialog.value = false
+                    }
+                ) {
+                    Text("Complete!!")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        // Handle dismissal action here
+                        isDeletionInProgress = false
+                        showDialog.value = false
+                    }
+                ) {
+                    Text("Cancel...")
+                }
+            }
+        )
     }
 }
 
